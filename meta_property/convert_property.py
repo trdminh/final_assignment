@@ -1,12 +1,17 @@
-from meta_property import export_data
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from meta_property.meta_property import access_data
 import json
+
 def split_full_name(full_name):
     if not full_name:
         return None, None
     name_parts = full_name.strip().split()
     return name_parts[0], " ".join(name_parts[1:]) if len(name_parts) > 1 else None
 
-def get_agency():
+def get_agency(file):
+    export_data = access_data(file)
     agency_in = export_data["agency"]
     return {
         "agencyId": agency_in["agencyId"],
@@ -20,7 +25,8 @@ def get_agency():
         "website": agency_in["website"],
     }
 
-def get_agents():
+def get_agents(file):
+    export_data = access_data(file)
     agents_in = export_data["agentProfiles"]
     return [
         {
@@ -36,12 +42,14 @@ def get_agents():
         for agent in agents_in
     ]
 
-def get_images():
+def get_images(file):
+    export_data = access_data(file)
     return [{"category": "kitchen", "star": False, "url": url} for url in export_data["pro_meta"]["images"]]
 
-def get_property_for_sale():
+def get_property_for_sale(file):
+    export_data = access_data(file)
     pro_meta = export_data["pro_meta"]
-    agents_info = get_agents()
+    agents_info = get_agents(file)
     return {
         "architecturalStyle": None,
         "area": {"totalArea": pro_meta["landArea"], "unit": "sqM"},
@@ -73,7 +81,7 @@ def get_property_for_sale():
             "roof": ["Other"], "rooms": ["None"], "view": ["None"]
         },
         "historySale": export_data.get("historySale", []),
-        "images": get_images(),
+        "images": get_images(file),
         "listingOption": export_data["saleInfo"]["listingOption"],
         "postcode": pro_meta.get("postcode", ""),
         "pricing": {
@@ -97,7 +105,8 @@ def get_property_for_sale():
         "url": export_data["url"],
     }
     
-def get_schools():
+def get_schools(file):
+    export_data = access_data(file)
     return [
         {
             "address":school["address"],
@@ -116,17 +125,12 @@ def get_schools():
     for school in export_data["school"]
     ]
 
-def convert_property():
+def convert_property(file):
     return {
-        "agency": get_agency(),
-        "agent": get_agents(),
-        "images": get_images(),
-        "propertyForSale": get_property_for_sale(),
-        "school": get_schools(),
+        "agency": get_agency(file),
+        "agent": get_agents(file),
+        "images": get_images(file),
+        "propertyForSale": get_property_for_sale(file),
+        "school": get_schools(file),
     }
 
-def export_to_json(data, file):
-    with open(file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-        
-export_to_json(convert_property(),"step2.json")

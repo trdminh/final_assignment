@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import re
 import json
 
@@ -37,20 +41,10 @@ def find_key(data, key_to_find):
                 return result
     return None
 
-data_json = get_properties_data_from_html(file_path)
 
-
-root_graph_query = find_key(data_json, "rootGraphQuery")
-school_catchment = find_key(data_json, "schoolCatchment")
-prometa = find_key(data_json, "page")
-url = find_key(data_json, "canonical")
-totalarea = find_key(data_json, "landArea")
-slug = {"slug": find_key(data_json, "propertyProfileUrlSlug")}
-
-
-
-
-def get_history_sale():
+def get_history_sale(file):
+    data_json = get_properties_data_from_html(file)
+    root_graph_query = find_key(data_json, "rootGraphQuery")
     historySale = {}
     historySale["agencyId"] = root_graph_query["listingByIdV2"]["agency"]
     if find_key(data_json, "soldDate") == None:
@@ -60,9 +54,9 @@ def get_history_sale():
     
     return historySale
 
-history_sale = get_history_sale()
 
-def get_sale_info():
+def get_sale_info(file):
+    data_json = get_properties_data_from_html(file)
     saleInfo = {}
     if find_key(data_json, "expectedPrice") == None:
         saleInfo["expectedPrice"] = None
@@ -87,30 +81,25 @@ def get_sale_info():
     saleInfo["status"] = saleInfo["pricing"]["authority"]
     
     return saleInfo
-    
 
-sale_info = get_sale_info()
-def access_data():
-    return{
+def access_data(file):
+    data_json = get_properties_data_from_html(file)
+    root_graph_query = find_key(data_json, "rootGraphQuery")
+    school_catchment = find_key(data_json, "schoolCatchment")
+    prometa = find_key(data_json, "page")
+    return {
     "agency" : root_graph_query["listingByIdV2"]["agency"],
     "agentProfiles" : root_graph_query["listingByIdV2"]["agents"],
     "description" : root_graph_query["listingByIdV2"]["description"],
     "displayableAddress" : root_graph_query["listingByIdV2"]["displayableAddress"],
     "headline" : root_graph_query["listingByIdV2"]["headline"],
-    "historySale" : get_history_sale(),
+    "historySale" : get_history_sale(file),
     "pro_meta" : prometa["pageInfo"]["property"],
     "propertyType" : {"propertyType":find_key(data_json, "propertyType")},
     "school" : school_catchment["schools"],
-    "saleInfo" : get_sale_info(),
+    "saleInfo" : get_sale_info(file),
     "slug" : {"slug": find_key(data_json, "propertyProfileUrlSlug")},
     "structuredFeatures" : find_key(data_json, "structuredFeatures"),
     "totalarea" : find_key(data_json, "landArea"),
     "url" : find_key(data_json, "canonical")
     }
-    
-export_data = access_data()
-def export_to_json(data, file):
-    with open(file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-        
-export_to_json(export_data, "output.json")
