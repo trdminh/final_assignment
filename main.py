@@ -1,4 +1,4 @@
-from connection.connect_to_mongodb import  collection
+from connection.connect_to_mongodb import  collection, get_document_id
 from database.database import Agency, Agent, School, Image, PropertyForSale
 from datetime import datetime
 from bson import ObjectId
@@ -8,6 +8,8 @@ from zero_short.zeroshort import classification, enhanced_classification
 file = "/input/step1.html"
 data = convert_property(file)
 classification_images = enhanced_classification(data["images"])
+
+
 async def create_agnecy_data(data):
     agency = Agency(
         agencyId=data["agencyId"],
@@ -21,10 +23,14 @@ async def create_agnecy_data(data):
         updatedAt=datetime.now(),
         website=data["website"]
     )
-    data_dict = agency.to_dict()
-    # Upload to MongoDB 
-    result = await collection["Agency"].insert_one(data_dict)
-    return result.inserted_id
+    if get_document_id({"website": data["website"]}, collection["Agency"]) == False:
+        
+        data_dict = agency.to_dict()
+        # Upload to MongoDB 
+        result = await collection["Agency"].insert_one(data_dict)
+        return result.inserted_id
+    else:
+        return get_document_id({"website": data["website"]}, collection["Agency"])
 
 
 async def create_agent_data(data):
@@ -42,10 +48,14 @@ async def create_agent_data(data):
             profileUrl=agent["profileUrl"],
             updatedAt=datetime.now()
         )
-        data_upload_agent = agent_data.to_dict()
-        #Upload
-        result = await collection["Agent"].insert_one(data_upload_agent)
-        result_id.append(result.inserted_id)
+        if get_document_id({"email": agent["email"]}, collection["Agent"]) == False:
+            
+            data_upload_agent = agent_data.to_dict()
+            #Upload
+            result = await collection["Agent"].insert_one(data_upload_agent)
+            result_id.append(result.inserted_id)
+        else: 
+            result_id.append(get_document_id({"email": agent["email"]}, collection["Agent"]))
     return result_id
 async def create_school_data(data):
     result_id = []
@@ -65,10 +75,14 @@ async def create_school_data(data):
             url=school["url"],
             year=school["year"]
         )
-        data_upload_school = school_data.to_dict()
-        #Upload
-        result = await collection["School"].insert_one(data_upload_school)
-        result_id.append(result.inserted_id)
+        if get_document_id({"url":school["url"]}, collection["School"]) == False:
+            
+            data_upload_school = school_data.to_dict()
+            #Upload
+            result = await collection["School"].insert_one(data_upload_school)
+            result_id.append(result.inserted_id)
+        else:
+            result_id.append(get_document_id({"url":school["url"]}, collection["School"]))
     return result_id
 
 async def create_image_data(data):
@@ -150,6 +164,7 @@ async def created_property_for_sale(data):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-# # Run the main function
+
 if __name__ == "__main__":
     asyncio.run(created_property_for_sale(data))
+
