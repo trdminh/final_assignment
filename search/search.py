@@ -2,14 +2,11 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import csv
 from bs4 import BeautifulSoup
-from crawl4ai import AsyncWebCrawler, WebCrawler
+from crawl4ai import AsyncWebCrawler
 import re
 import json
 from collections import OrderedDict
-
-# SEARCH_KEY = "6cbe87d71e8df219ac1bc71a0f7f6ea4b6b9956d336cf420de13783109dc3c37"
 
 async def get_total_pages(url):
     async with AsyncWebCrawler() as crawler:
@@ -29,40 +26,6 @@ async def get_total_pages(url):
                 continue
 
     return None  # Trả về None nếu không tìm thấy giá trị
-
-
-
-# async def google_search_serpapi(session, query, num_results=10, filter=None):
-#     """Search Google using SerpAPI """
-#     url = "https://serpapi.com/search"
-#     params = {
-#         "q": query,
-#         "hl": "en",
-#         "gl": "au",
-#         "num": num_results,
-#         "api_key": SEARCH_KEY
-#     }
-
-#     async with session.get(url, params=params) as response:
-#         if response.status != 200:
-#             print(f"❌ Error {response.status}: Can't get links")
-#             return []
-
-#         data = await response.json()
-#         links = [result["link"] for result in data.get("organic_results", []) if "link" in result]
-
-#         if filter:
-#             links = [link for link in links if filter in link]
-
-#         return links
-
-
-# async def property_search(query,filter="domain.com.au"):
-
-#     async with aiohttp.ClientSession() as session:
-#         results = await google_search_serpapi(session, query, num_results=20, filter=filter)
-
-#     return results  # Return list of links
 
 
 
@@ -105,38 +68,26 @@ async def scraping_by_street(search_keyword):
     urls = await search_url(search_url_sale) # get all domain links
     url = await filter_sale_urls(urls) # get for all property for sale links
     return url
-
+async def get_page(url):
+    page_urls = []
+    total = await get_total_pages(url)  # Lấy tổng số trang
+    for page_number in range(1, int(total) + 1):
+        paginated_url = f"{url}?page={page_number}"  # Tạo URL mới mà không ghi đè url gốc
+        page_urls.append(paginated_url)
+    return page_urls
 async def get_links(url):
+    urls = await get_page(url)
     all_links = []
-    total_pages = await get_total_pages(url)
-    pages = []
-    for page_number in range(1, total_pages+1):
-        pages.append(f"{url}?page={page_number}")
-    for page_number in range(1, total_pages+1):
-        async with AsyncWebCrawler() as crawler:
-            result = await crawler.arun(url=f"{url}?page={page_number}")
-        links = result.links['internal']
+    async with AsyncWebCrawler() as crawler:
+        results = await crawler.arun_many(urls)
+    for result in results:
+        links = result.links["internal"]
         property_pattern = re.compile(r"https://www\.domain\.com\.au/.+-\d{10}")
         property_links = [link['href'] for link in links if property_pattern.match(link['href'])]
         all_links.append(property_links)
-        
-    return all_links
-
-async def main():
-    results = await scraping_by_street("property for sale in sydney domain")
-    all_links = await get_links(results[0])
-
-    with open("url_database.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Page", "URL"])  
-
-        for page_idx, links in enumerate(all_links, start=1):
-            for link in links:
-                writer.writerow([f"{page_idx}", link])  
-
-    print("Ghi file CSV thành công!")
     
+    return all_links
+        
 
 
-import asyncio  
-asyncio.run(main())
+

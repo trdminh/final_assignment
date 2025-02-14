@@ -4,17 +4,25 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import re
 import json
-
-file_path = 'input/step1'
-
-
-def get_properties_data_from_html(file):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        file_content = file.read()
+from search.search import get_links, scraping_by_street
+from crawl4ai import AsyncWebCrawler
 
 
+
+async def get_html_from_link(query):
+    website = await scraping_by_street(query)
+    all_links = await get_links(website[0])
+    results = []
+    for link in all_links:
+        async with AsyncWebCrawler() as crawler:
+            property_sales = await crawler.arun_many(link)
+            for property_sale in property_sales:
+                results.append(property_sale.html)
+    return results
+
+async def get_properties_data_from_html(file_html):
     script_pattern = r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>'
-    match = re.search(script_pattern, file_content, re.DOTALL)
+    match = re.search(script_pattern, file_html, re.DOTALL)
 
     if match:
         next_data_content = match.group(1)
@@ -25,6 +33,9 @@ def get_properties_data_from_html(file):
     else:
         next_data_json = "Can't find <script> with id='__NEXT_DATA__'."
     return next_data_json
+
+
+    
 
 def find_key(data, key_to_find):
     if isinstance(data, dict):
@@ -42,8 +53,7 @@ def find_key(data, key_to_find):
     return None
 
 
-def get_history_sale(file):
-    data_json = get_properties_data_from_html(file)
+async def get_history_sale(data_json):
     root_graph_query = find_key(data_json, "rootGraphQuery")
     historySale = {}
     historySale["agencyId"] = root_graph_query["listingByIdV2"]["agency"]
@@ -55,8 +65,7 @@ def get_history_sale(file):
     return historySale
 
 
-def get_sale_info(file):
-    data_json = get_properties_data_from_html(file)
+async def get_sale_info(data_json):
     saleInfo = {}
     if find_key(data_json, "expectedPrice") == None:
         saleInfo["expectedPrice"] = None
@@ -82,24 +91,28 @@ def get_sale_info(file):
     
     return saleInfo
 
-def access_data(file):
-    data_json = get_properties_data_from_html(file)
+async def access_data(data_json):
     root_graph_query = find_key(data_json, "rootGraphQuery")
     school_catchment = find_key(data_json, "schoolCatchment")
     prometa = find_key(data_json, "page")
     return {
-    "agency" : root_graph_query["listingByIdV2"]["agency"],
-    "agentProfiles" : root_graph_query["listingByIdV2"]["agents"],
-    "description" : root_graph_query["listingByIdV2"]["description"],
-    "displayableAddress" : root_graph_query["listingByIdV2"]["displayableAddress"],
-    "headline" : root_graph_query["listingByIdV2"]["headline"],
-    "historySale" : get_history_sale(file),
+    "agency" : find_key(root_graph_query,"agency"),
+    "agentProfiles" : find_key(root_graph_query["listingByIdV2"],"agents"),
+    "description" : find_key(root_graph_query["listingByIdV2"],"description"),
+    "displayableAddress" : find_key(root_graph_query["listingByIdV2"],"displayableAddress"),
+    "headline" : find_key(root_graph_query["listingByIdV2"],"headline"),
+    "historySale" : await get_history_sale(data_json),
     "pro_meta" : prometa["pageInfo"]["property"],
     "propertyType" : {"propertyType":find_key(data_json, "propertyType")},
     "school" : school_catchment["schools"],
-    "saleInfo" : get_sale_info(file),
+    "saleInfo" : await get_sale_info(data_json),
     "slug" : {"slug": find_key(data_json, "propertyProfileUrlSlug")},
     "structuredFeatures" : find_key(data_json, "structuredFeatures"),
     "totalarea" : find_key(data_json, "landArea"),
-    "url" : find_key(data_json, "canonical")
+    "url" : find_key(data_json, "canonical"),
+    "features" : {
+        "indoorFeatures": find_key(data_json, "indoorFeatures"),
+        "outdoorFeatures": find_key(data_json, "outdoorAmenities"),
     }
+    }
+

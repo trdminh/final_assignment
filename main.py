@@ -2,13 +2,12 @@ from connection.connect_to_mongodb import  collection, get_document_id
 from database.database import Agency, Agent, School, Image, PropertyForSale
 from datetime import datetime
 from bson import ObjectId
+from crawl4ai import AsyncWebCrawler
 import asyncio
 from meta_property.convert_property import convert_property
-from zero_short.zeroshort import classification, enhanced_classification
-file = "/input/step1.html"
-data = convert_property(file)
-classification_images = enhanced_classification(data["images"])
-
+from meta_property.meta_property import access_data, get_html_from_link, get_properties_data_from_html
+from zero_short.zeroshort import enhanced_classification
+from zero_short.nomic_emb_v1 import emb_semantic_nomic
 
 async def create_agnecy_data(data):
     agency = Agency(
@@ -23,14 +22,14 @@ async def create_agnecy_data(data):
         updatedAt=datetime.now(),
         website=data["website"]
     )
-    if get_document_id({"website": data["website"]}, collection["Agency"]) == False:
+    if await get_document_id({"profileUrl": data["profileUrl"]}, collection["Agency"]) == False:
         
         data_dict = agency.to_dict()
         # Upload to MongoDB 
         result = await collection["Agency"].insert_one(data_dict)
         return result.inserted_id
     else:
-        return get_document_id({"website": data["website"]}, collection["Agency"])
+        return await get_document_id({"website": data["website"]}, collection["Agency"])
 
 
 async def create_agent_data(data):
@@ -48,14 +47,14 @@ async def create_agent_data(data):
             profileUrl=agent["profileUrl"],
             updatedAt=datetime.now()
         )
-        if get_document_id({"email": agent["email"]}, collection["Agent"]) == False:
+        if await get_document_id({"email": agent["email"]}, collection["Agent"]) == False:
             
             data_upload_agent = agent_data.to_dict()
             #Upload
             result = await collection["Agent"].insert_one(data_upload_agent)
             result_id.append(result.inserted_id)
         else: 
-            result_id.append(get_document_id({"email": agent["email"]}, collection["Agent"]))
+            result_id.append(await get_document_id({"email": agent["email"]}, collection["Agent"]))
     return result_id
 async def create_school_data(data):
     result_id = []
@@ -75,14 +74,14 @@ async def create_school_data(data):
             url=school["url"],
             year=school["year"]
         )
-        if get_document_id({"url":school["url"]}, collection["School"]) == False:
+        if await get_document_id({"url":school["url"]}, collection["School"]) == False:
             
             data_upload_school = school_data.to_dict()
             #Upload
             result = await collection["School"].insert_one(data_upload_school)
             result_id.append(result.inserted_id)
         else:
-            result_id.append(get_document_id({"url":school["url"]}, collection["School"]))
+            result_id.append(await get_document_id({"url":school["url"]}, collection["School"]))
     return result_id
 
 async def create_image_data(data):
@@ -99,7 +98,7 @@ async def create_image_data(data):
         )
         data_upload_image = image_data.to_dict()
         result = await collection["Image"].insert_one(data_upload_image)
-        new_image.append({"category": image["predicted_category"],"star":image["star"], "url": image["url"]})
+        new_image.append({"category": image["predicted_category"],"emb":image["emb"].tolist(),"star":image["star"], "url": image["url"]})
         result_id.append(result.inserted_id)
     return result_id, new_image
 
@@ -133,7 +132,7 @@ async def created_property_for_sale(data):
             coordinates=data["propertyForSale"]["coordinates"],
             createdAt=datetime.now(),
             description=data["propertyForSale"]["description"],
-            expectedPrice="N/A",
+            expectedPrice=data["propertyForSale"]["expectedPrice"],
             features=data["propertyForSale"]["features"],
             historysale=data["propertyForSale"]["historySale"],
             imageid=image_ids,
@@ -153,6 +152,7 @@ async def created_property_for_sale(data):
             structuralRemodelYear=data["propertyForSale"]["structuralRemodelYear"],
             suburb=data["propertyForSale"]["suburb"],
             title=data["propertyForSale"]["title"],
+            embSemanticNomicTextV1=await emb_semantic_nomic(data["propertyForSale"],proid=True, pro_col=True),
             updatedAt=datetime.now(),
             location={
                 "type":"Point",
@@ -165,6 +165,16 @@ async def created_property_for_sale(data):
         print(f"An error occurred: {e}")
 
 
-if __name__ == "__main__":
-    asyncio.run(created_property_for_sale(data))
-
+async def main():
+    data_htmls = await get_html_from_link("propety for sale in st lucia domain")
+    for data_html in data_htmls:
+        data = await get_properties_data_from_html(data_html)
+        property_data = await convert_property(await access_data(data))
+        await created_property_for_sale(property_data)
+        print("Done")
+    # async with AsyncWebCrawler() as crawler:
+    #     result = await crawler.arun("https://www.domain.com.au/23-huxham-terrace-auchenflower-qld-4066-2019774064")
+    # data = await get_properties_data_from_html(result.html)
+    # property_data = await convert_property(await access_data(data))
+    # await created_property_for_sale(property_data)       
+asyncio.run(main()) 

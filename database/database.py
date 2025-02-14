@@ -10,7 +10,7 @@ from bson import ObjectId
 from typing import Optional
 from datetime import datetime
 import torch
-
+import numpy as np
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
 class Agency(BaseModel):
@@ -116,8 +116,8 @@ class PropertyForSale(BaseModel):
     structuralRemodelYear: str = Field()
     suburb: str = Field()
     title: str = Field()
+    embSemanticNomicTextV1: list = Field()
     updatedAt: datetime = Field()
-    userId: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
     location: dict = Field()
     
     class Config:
