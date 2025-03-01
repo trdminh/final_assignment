@@ -84,10 +84,11 @@ async def get_links(url):
         links = result.links["internal"]
         property_pattern = re.compile(r"https://www\.domain\.com\.au/.+-\d{10}")
         property_links = [link['href'] for link in links if property_pattern.match(link['href'])]
-        all_links.append(property_links)
+        for link in property_links:
+            if link not in all_links:
+                all_links.append(link)
     
-    return all_links
+    return list(set(all_links))
         
-
 
 

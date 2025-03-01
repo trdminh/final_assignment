@@ -23,7 +23,22 @@ async def get_agency(export_data):
         "profileUrl": agency_in["profileUrl"],
         "website": agency_in["website"],
     }
-
+async def get_features(export_data):
+    indoorFeatures = []
+    outdoorAmenities = []
+    if export_data["features"] is None:
+        indoorFeatures = ["None"]
+        outdoorAmenities = ["None"]
+        return indoorFeatures, outdoorAmenities
+    else:
+        for feature in export_data["features"]:
+            if "category" in feature and  feature["category"] == "Indoor":
+                indoorFeatures.append(feature["name"])
+            elif "category" in feature and feature["category"] == "Outdoor":
+                outdoorAmenities.append(feature["name"])
+        return indoorFeatures, outdoorAmenities
+    
+        
 async def get_agents(export_data):
     agents_in = export_data["agentProfiles"]
     return [
@@ -43,8 +58,7 @@ async def get_agents(export_data):
 async def get_images(export_data):
     return [{"category": "kitchen", "star": False, "url": url} for url in export_data["pro_meta"]["images"]]
 
-async def get_history_sale(export_data):
-    return
+
 
 async def get_excepted_price(text):
     price_pattern = re.compile(r'\$([\d,.]+[kKmM]?)')
@@ -71,12 +85,87 @@ async def get_excepted_price(text):
     
     return {"price": f"${prices[0]:,.0f}", "status": status}
 
+async def format_money(value: str) -> str:
+    if value[-1].upper() == 'K':  
+        try:
+            number = float(value[:-1]) * 1000
+            return f"${number:,.0f}"
+        except ValueError:
+            return "N/A"
+    elif value[-1].upper() == 'M':
+        try:
+            number = float(value[:-1]) * 1000000
+            return f"${number:,.0f}"
+        except ValueError:
+            return "N/A"
+    elif value[-1].upper() == 'B':
+        try:
+            number = float(value[:-1]) * 1000000000
+            return f"${number:,.0f}"
+        except ValueError:
+            return "N/A"
+    return "N/A"
 
-    
+async def get_history_sale(export_data):
+    agents_info = await get_agents(export_data)
+    price_options = await get_excepted_price(export_data["historySale"]["soldPrice"])
+    indoorFeatures, outdoorAmenities = await get_features(export_data)
+    return {
+        "historyprofile": [{
+            "stakeHolder": "agent",
+            "soldDateInfo": export_data["historySale"]["soldDateInfo"],
+           "contractInfo": [
+            {
+                "email": agent["email"],
+                "firstName": agent["firstName"],
+                "lastName": agent["lastName"],
+                "startDate": None,
+                "status": "current",
+            }
+                for agent in agents_info
+            ],
+           "title": export_data["headline"],
+           "slug": export_data["slug"]["slug"],
+            "propertyType": export_data["propertyType"]["propertyType"],
+            "description": export_data["description"],
+            "bed": export_data["pro_meta"]["bedrooms"],
+            "bath": export_data["pro_meta"]["bathrooms"],
+            "images": await get_images(export_data),
+            "features": {
+                "garage": 6,
+                "floorno": 1,
+                "basement": "None",
+                "floorCovering": ["None"],
+                "parking": ["Carport"],
+                "roof": ["Other"],
+                "view": ["None"],
+                "rooms": ["None"],
+                "indoorFeatures": indoorFeatures,
+                "coolingTypes": ["None"],
+                "heatingTypes": ["None"],
+                "heatingFuels": ["None"],
+                "appliances": ["None"],
+                "buildingAmenities": ["None"],
+                "outdoorAmenities": outdoorAmenities,
+                "displayAddress": "fullAddress"
+            },
+            "area": {"totalArea": export_data["totalarea"], "unit": "sqM"},
+            "historySale": [{
+                "soldDate": {export_data["historySale"]["soldDate"],
+                },
+                "agencyId": export_data["agency"]["agencyId"],
+                "soldPrice": "N/A" if price_options["price"] == "$0" else price_options["price"],
+                "dayslisted": None,
+            }]
+        } 
+        ],
+    }
 async def get_property_for_sale(export_data):
     pro_meta = export_data["pro_meta"]
     agents_info = await get_agents(export_data)
     price_options = await get_excepted_price(export_data["saleInfo"]["pricing"]["pricingOptions"])
+    soldprice = await format_money(export_data["historySale"]["soldPrice"])
+    indoorFeatures, outdoorAmenities = await get_features(export_data)
     return {
         "architecturalStyle": None,
         "area": {"totalArea": export_data["totalarea"], "unit": "sqM"},
@@ -99,15 +188,20 @@ async def get_property_for_sale(export_data):
             "lng": find_key(export_data["displayableAddress"],"longitude"),
         },
         "description": export_data.get("description", ""),
-        "expectedPrice": "N/A" if price_options["price"] == "$0" else price_options["price"],
+        "expectedPrice": "N/A" if price_options["price"] == "$0"  else price_options["price"],
         "features": {
             "appliances": ["None"], "basement": "None", "buildingAmenities": ["None"],
             "coolingTypes": ["None"], "displayAddress": "fullAddress", "floorCovering": ["None"],
             "floorNo": 1, "garage": 1, "heatingFuels": ["None"], "heatingTypes": ["None"],
-            "indoorFeatures": export_data["features"]["indoorFeatures"], "outdoorAmenities": export_data["features"]["outdoorFeatures"], "parking": ["Carport"],
+            "indoorFeatures": indoorFeatures, "outdoorAmenities": outdoorAmenities, "parking": ["Carport"],
             "roof": ["Other"], "rooms": ["None"], "view": ["None"]
         },
-        "historySale": export_data.get("historySale", []),
+        "historySale": {
+                "soldDate": None,
+                "agencyId": export_data["historySale"]["agencyId"],
+                "soldPrice": soldprice,
+                "dayslisted": export_data["historySale"]["soldDate"],
+            },
         "images": await get_images(export_data),
         "listingOption": export_data["saleInfo"]["listingOption"],
         "postcode": pro_meta.get("postcode", ""),

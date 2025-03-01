@@ -9,16 +9,13 @@ from crawl4ai import AsyncWebCrawler
 
 
 
-async def get_html_from_link(query):
-    website = await scraping_by_street(query)
-    all_links = await get_links(website[0])
-    results = []
-    for link in all_links:
-        async with AsyncWebCrawler() as crawler:
-            property_sales = await crawler.arun_many(link)
-            for property_sale in property_sales:
-                results.append(property_sale.html)
-    return results
+async def get_html_from_link(all_link):
+    async with AsyncWebCrawler() as crawler:
+        property_sales = await crawler.arun_many(all_link)
+    result = []
+    for property_sale in property_sales:
+        result.append(property_sale.html)
+    return result
 
 async def get_properties_data_from_html(file_html):
     script_pattern = r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>'
@@ -57,10 +54,8 @@ async def get_history_sale(data_json):
     root_graph_query = find_key(data_json, "rootGraphQuery")
     historySale = {}
     historySale["agencyId"] = root_graph_query["listingByIdV2"]["agency"]
-    if find_key(data_json, "soldDate") == None:
-        historySale["soldDate"] = None
-    if find_key(data_json, "soldPrice") == None:
-        historySale["soldPrice"] = None
+    historySale["soldDate"] = find_key(data_json, "dateListed")
+    historySale["soldPrice"] = find_key(data_json,"medianPrice")
     
     return historySale
 
@@ -76,7 +71,7 @@ async def get_sale_info(data_json):
     if saleInfo["listingOption"] == "sale":
         pricing["authority"] = "for-sale"
     else:
-        pricing["authority"] = "not-for-sale"
+        pricing["authority"] = "sold"
     if find_key(data_json, "priceIncludes") == None:
         pricing["priceIncludes"] = ['']
     else:
@@ -103,6 +98,7 @@ async def access_data(data_json):
     "headline" : find_key(root_graph_query["listingByIdV2"],"headline"),
     "historySale" : await get_history_sale(data_json),
     "pro_meta" : prometa["pageInfo"]["property"],
+    "price": find_key(data_json, "price"),
     "propertyType" : {"propertyType":find_key(data_json, "propertyType")},
     "school" : school_catchment["schools"],
     "saleInfo" : await get_sale_info(data_json),
@@ -110,9 +106,6 @@ async def access_data(data_json):
     "structuredFeatures" : find_key(data_json, "structuredFeatures"),
     "totalarea" : find_key(data_json, "landArea"),
     "url" : find_key(data_json, "canonical"),
-    "features" : {
-        "indoorFeatures": find_key(data_json, "indoorFeatures"),
-        "outdoorFeatures": find_key(data_json, "outdoorAmenities"),
-    }
+    "features" : find_key(data_json, "structuredFeatures"),
     }
 

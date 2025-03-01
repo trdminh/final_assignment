@@ -10,21 +10,20 @@ from bson import ObjectId
 from typing import Optional
 from datetime import datetime
 import torch
-import numpy as np
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
 class Agency(BaseModel):
     id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
-    agencyId: int = Field()
-    banner: str = Field()
-    contactDetails: str = Field()
-    createdAt: datetime = Field()
-    logo: str = Field()
-    logoSmall: str = Field()
-    name: str = Field()
-    profileUrl: str = Field()
-    updatedAt: datetime = Field()
-    website: str = Field()
+    agencyId: Optional[int] = Field(default=None)
+    banner: Optional[str] = Field(default=None)
+    contactDetails: Optional[str] = Field(default=None)
+    createdAt: datetime = Field(default=datetime.now())
+    logo: Optional[str] = Field(default=None)
+    logoSmall: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    profileUrl: Optional[str] = Field(default=None)
+    updatedAt: datetime = Field(default=datetime.now())
+    website: Optional[str] = Field(default=None)
     
     def to_dict(self):
         data_dict = self.dict(by_alias=True, exclude_none=True)
@@ -32,83 +31,128 @@ class Agency(BaseModel):
     
 class Agent(BaseModel):
     id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
-    agentId: int = Field()
-    createdAt: datetime = Field()
-    email: str = Field()
-    firstName: str = Field()
-    isActiveProfilePage: bool = Field()
-    lastName: str = Field()
-    phoneNumber: str = Field()
-    photo: str = Field()
+    agentId: Optional[int] = Field(default=None)
+    createdAt: datetime = Field(default=datetime.now())
+    email: Optional[str] = Field(default=None)
+    firstName: Optional[str] = Field(default=None)
+    isActiveProfilePage: Optional[bool] = Field()
+    lastName: Optional[str] = Field(default=None)
+    phoneNumber: Optional[str] = Field(default=None)
+    photo: Optional[str] = Field(default=None)
     profileUrl: str = Field()
-    updatedAt: datetime = Field()
+    updatedAt: datetime = Field(default=datetime.now())
     def to_dict(self):
         data_dict = self.dict(by_alias=True, exclude_none=True)
         return data_dict
 
 class School(BaseModel):
     id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
-    address: str = Field()
-    createdAt: datetime = Field()
-    distance: float = Field()
-    domainSeoUrlSlug: str = Field()
-    educationLevel: str = Field()
-    gender: str = Field()
-    name: str = Field()
-    postCode: str = Field()
-    state: str = Field()
-    type: str = Field()
-    updatedAt: datetime = Field()
-    url: str = Field()
-    year: str = Field()
+    address: Optional[str] = Field(default=None)
+    createdAt: datetime = Field(default=datetime.now())
+    distance: Optional[float] = Field(default=None)
+    domainSeoUrlSlug: Optional[str] = Field(default=None)
+    educationLevel: Optional[str] = Field(default=None)
+    gender: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    postCode: Optional[str] = Field(default=None)
+    state: Optional[str] = Field(default=None)
+    type: Optional[str] = Field(default=None)
+    updatedAt: datetime = Field(default=datetime.now())
+    url: Optional[str] = Field(default=None)
+    year: Optional[str] = Field(default=None)
     def to_dict(self):
         data_dict = self.dict(by_alias=True, exclude_none=True)
         return data_dict
     
 class Image(BaseModel):
     id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
-    category: str = Field()
-    createdAt: datetime = Field()
-    emb: torch.Tensor = Field()
-    star: bool = Field()
-    updatedAt: datetime = Field()
-    url: str = Field()
+    category: Optional[str] = Field(default=None)
+    createdAt: datetime = Field(default=datetime.now())
+    emb: Optional[list] = Field(default=None)
+    star: Optional[bool] = Field(default=None)
+    updatedAt: datetime = Field(default=datetime.now())
+    url: Optional[str] = Field(default=None)
     
     class Config:
         arbitrary_types_allowed = True
         
     def to_dict(self):
         data_dict = self.dict(by_alias=True, exclude_none=True)
-        data_dict["emb"] = data_dict["emb"].tolist()
         return data_dict
     
 class PropertyForSale(BaseModel):
     id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
     agencyId: Optional[PyObjectId] = Field(default_factory=None)
+    agentId: Optional[list[PyObjectId]] = Field(default=None)
+    architecturalStyte: Optional[bool] = Field(default=None)
+    area: Optional[dict] = Field(default=None)
+    bath: Optional[int] = Field(default=None)
+    bed: Optional[int] = Field(default=None)
+    city: Optional[str] = Field(default=None)
+    constructionYear: Optional[str] = Field(default=None)
+    contactInfo: Optional[list] = Field(default=None)
+    coordinates: Optional[dict] = Field(default=None)
+    createdAt: datetime = Field(default=datetime.now())
+    description: Optional[str] = Field(default=None)
+    expectedPrice: Optional[str] = Field(default=None)
+    features: Optional[dict] = Field(default=None)
+    historysale: Optional[list] = Field(default=None)
+    imageid: list[Optional[PyObjectId]] = Field()
+    images: Optional[list] = Field(default=None)
+    listingOption: Optional[str] = Field(default=None)
+    postcode: Optional[int] = Field(default=None)
+    pricing: Optional[dict] = Field(default=None)
+    propertyType: Optional[str] = Field(default=None)
+    published: Optional[bool] = Field(default=None)
+    recommended: Optional[bool] = Field(default=None)
+    schoolId: Optional[list[PyObjectId]] = Field()
+    slug: Optional[str] = Field(default=None)
+    stakeholder: Optional[str] = Field(default=None)
+    state: Optional[str] = Field(default=None)
+    status: Optional[str] = Field(default=None)
+    street: Optional[str] = Field(default=None)
+    structuralRemodelYear: Optional[str] = Field(default=None)
+    suburb: Optional[str] = Field(default=None)
+    title: Optional[str] = Field(default=None)
+    embSemanticNomicTextV1: Optional[list] = Field(default=None)
+    updatedAt: datetime = Field(default=datetime.now())
+    url: str = Field()
+    location: Optional[dict] = Field(default=None)
+    
+    class Config:
+        arbitrary_types_allowed = True
+    
+    def to_dict(self):
+        data_dict = self.dict(by_alias=True, exclude_none=True)
+        return data_dict
+    
+class PropertySold(BaseModel):
+    id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
+    agencyId: Optional[PyObjectId] = Field(default_factory=None)
     agentId: list[Optional[PyObjectId]] = Field()
-    architecturalStyte: bool = Field()
-    area: dict = Field()
-    bath: int = Field()
-    bed: int = Field()
-    city: str = Field()
-    constructionYear: str = Field()
-    contactInfo: list = Field()
-    coordinates: dict = Field()
+    architecturalStyte: Optional[bool] = Field(default=None)
+    area: Optional[dict] = Field(default=None)
+    bath: Optional[int] = Field(default=None)
+    bed: Optional[int] = Field(default=None)
+    city: Optional[str] = Field(default=None)
+    constructionYear: Optional[str] = Field(default=None)
+    contactInfo: Optional[list] = Field(default=None)
+    coordinates: Optional[dict] = Field(default=None)
     createdAt: datetime = Field()
-    description: str = Field()
-    expectedPrice: str = Field()
-    features: dict = Field()
-    historysale: dict = Field()
+    description: Optional[str] = Field(default=None)
+    expectedPrice: Optional[str] = Field(default=None)
+    features: Optional[dict] = Field(default=None)
+    historysale: Optional[list[dict]] = Field(default=None)
     imageid: list[Optional[PyObjectId]] = Field()
     images: list = Field()
-    listingOption: str = Field()
-    postcode: int = Field()
-    pricing: dict = Field()
-    propertyType: str = Field()
+    listingOption: Optional[str] = Field(default=None)
+    postcode: Optional[int] = Field(default=None)
+    pricing: Optional[dict] = Field(default=None)
+    propertyType: Optional[str] = Field(default=None)
     published: bool = Field()
     recommended: bool = Field()
     schoolId: list[Optional[PyObjectId]] = Field()
-    slug: str = Field()
+    slug: Optional[str] = Field(default=None)
     stakeholder: str = Field()
     state: str = Field()
     status: str = Field()
@@ -116,8 +160,9 @@ class PropertyForSale(BaseModel):
     structuralRemodelYear: str = Field()
     suburb: str = Field()
     title: str = Field()
-    embSemanticNomicTextV1: list = Field()
+    # embSemanticNomicTextV1: list = Field()
     updatedAt: datetime = Field()
+    url: str = Field()
     location: dict = Field()
     
     class Config:
@@ -126,3 +171,16 @@ class PropertyForSale(BaseModel):
     def to_dict(self):
         data_dict = self.dict(by_alias=True, exclude_none=True)
         return data_dict
+    
+class HistoryForSale(BaseModel):
+    id: Optional[PyObjectId] =  Field(default_factory=ObjectId, alias="_id")
+    createdAt: Optional[datetime] = Field(default=None)
+    historyprofile: Optional[list[dict]] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    updatedAt: Optional[datetime] = Field()
+    
+    def to_dict(self):
+        data_dict = self.dict(by_alias=True, exclude_none=True)
+        return data_dict
+    
+    

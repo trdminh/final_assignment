@@ -45,6 +45,8 @@ category_synonyms = {
     "Dining Room": ["Meal Room", "Eating Place", "Dining Area", "Breakfast Room", "Eating Space"]
 }
 
+
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 model, preprocess = clip.load("ViT-L/14")
@@ -119,7 +121,7 @@ def classification(data):
         correct = predicted_category == item["category"]  # Compare with actual class
         results.append({
             "url": item["url"],
-            "predicted_category": predicted_category,
+            "category": predicted_category,
             "actual_category": item["category"],
             "emb": new_data[i]["embed"],
             "star": item["star"],
@@ -129,7 +131,7 @@ def classification(data):
     return results
 
 ## function enhanced_classification has something wrong
-def enhanced_classification(data):
+async def enhanced_classification(data):
     results = []
     expanded_categories = []
     seen_synonyms = set()  # To track already used synonyms across all categories
@@ -178,11 +180,11 @@ def enhanced_classification(data):
 
         results.append({
             "url": item["url"],
-            "predicted_category": predicted_category,
+            "category": predicted_category,
             "actual_category": item["category"],
             "star": item["star"],
             "correct": correct,
-            "emb": images_feature[i]
+            "emb": images_feature[i].tolist()
         })
 
     return results
